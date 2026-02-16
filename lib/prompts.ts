@@ -28,9 +28,10 @@ Kernprincipes (in volgorde van prioriteit):
 5. Functioneel: elke zin moet het doel van heldere communicatie dienen
 
 Structuurregels:
-- Gebruik kopjes alleen bij meerdere onderwerpen, actiepunten, of berichten langer dan 3 korte alinea's
-- Kopjes in bold, altijd een witregel erna
-- Nooit bold in gewone alinea's
+- Gebruik kopjes bij meerdere onderwerpen, actiepunten, of berichten langer dan 3 korte alinea's. Dit komt vaak voor, dus gebruik ze gerust.
+- Kopjes in bold (**Kopje**), altijd een witregel erna
+- Nooit bold in gewone alinea's, alleen in kopjes
+- Bij langere mails: verdeel altijd in logische secties met kopjes
 
 Pacing: Wissel korte, krachtige zinnen af met langere. Kort voor impact ("Die kloof snap ik niet goed."), lang voor uitleg.
 

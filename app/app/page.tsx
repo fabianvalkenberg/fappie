@@ -3,8 +3,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import Image from "next/image";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 
 type Mode = "email" | "calendar";
 
@@ -65,7 +63,6 @@ export default function AppPage() {
     if (res.ok) {
       const data = await res.json();
 
-      // Store the full JSON response as the assistant message for API context
       const fullResponse = JSON.stringify({
         title: data.title,
         body: data.body,
@@ -76,7 +73,6 @@ export default function AppPage() {
         { role: "assistant", content: fullResponse },
       ]);
 
-      // Show chat message in the conversation
       if (data.chat) {
         setChatMessages([
           ...newChatMessages,
@@ -84,7 +80,6 @@ export default function AppPage() {
         ]);
       }
 
-      // Update the output panel
       if (data.title || data.body) {
         setOutput({ title: data.title, body: data.body });
       }
@@ -190,14 +185,12 @@ export default function AppPage() {
           <div className="absolute left-4 flex items-center gap-2">
             <Image src="/logo.svg" alt="Fappie" width={80} height={27} />
             {chatMessages.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
+              <button
                 onClick={handleNewChat}
-                className="ml-2"
+                className="ml-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Nieuw gesprek
-              </Button>
+              </button>
             )}
           </div>
           <div className="flex bg-white/60 rounded-full p-1">
@@ -234,44 +227,51 @@ export default function AppPage() {
       {/* Main content */}
       <div className="flex-1 min-h-0 max-w-7xl w-full mx-auto px-4 py-4">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
-          {/* Left: Chat */}
+          {/* Left: Chat (Claude-style) */}
           <div className="flex flex-col h-full min-h-0">
             {/* Messages */}
-            <div className="flex-1 min-h-0 overflow-y-auto rounded-2xl p-4 mb-3 space-y-3">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 mb-3 space-y-5">
               {chatMessages.length === 0 && (
                 <p className="text-muted-foreground text-sm text-center mt-8">
                   Plak een transcript om te beginnen...
                 </p>
               )}
               {chatMessages.map((msg, i) => (
-                <div
-                  key={i}
-                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
-                      msg.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-white text-foreground"
-                    }`}
-                  >
-                    <div className="whitespace-pre-wrap">{msg.content}</div>
-                  </div>
+                <div key={i}>
+                  {msg.role === "user" ? (
+                    <div className="flex justify-end">
+                      <div className="max-w-[85%] bg-[#f4f0e8] rounded-3xl px-4 py-3 text-sm text-foreground">
+                        <div className="whitespace-pre-wrap">{msg.content}</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-foreground leading-relaxed pl-1">
+                      <div className="whitespace-pre-wrap">{msg.content}</div>
+                    </div>
+                  )}
                 </div>
               ))}
               {loading && (
-                <div className="flex justify-start">
-                  <div className="bg-white rounded-2xl px-3 py-2 text-sm text-muted-foreground">
-                    Genereren...
+                <div className="pl-1">
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-muted-foreground/40 animate-pulse" />
+                    <span
+                      className="inline-block w-1.5 h-1.5 rounded-full bg-muted-foreground/40 animate-pulse"
+                      style={{ animationDelay: "0.2s" }}
+                    />
+                    <span
+                      className="inline-block w-1.5 h-1.5 rounded-full bg-muted-foreground/40 animate-pulse"
+                      style={{ animationDelay: "0.4s" }}
+                    />
                   </div>
                 </div>
               )}
               <div ref={chatEndRef} />
             </div>
 
-            {/* Input */}
-            <div className="shrink-0 flex gap-2">
-              <Textarea
+            {/* Input (Claude-style: textarea with send button inside) */}
+            <div className="shrink-0 relative">
+              <textarea
                 ref={textareaRef}
                 placeholder={
                   chatMessages.length === 0
@@ -281,16 +281,40 @@ export default function AppPage() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="min-h-[80px] max-h-[200px] resize-none rounded-2xl"
-                rows={3}
+                className="w-full min-h-[56px] max-h-[200px] resize-none rounded-3xl border border-border bg-white px-4 py-3.5 pr-14 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/20"
+                rows={1}
+                style={{
+                  height: "auto",
+                  overflow: input.split("\n").length > 4 ? "auto" : "hidden",
+                }}
+                onInput={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = "auto";
+                  target.style.height =
+                    Math.min(target.scrollHeight, 200) + "px";
+                }}
               />
-              <Button
+              <button
                 onClick={handleSend}
                 disabled={loading || !input.trim()}
-                className="shrink-0 self-end rounded-2xl"
+                className="absolute right-2.5 bottom-2.5 w-9 h-9 rounded-full bg-[#e07d3a] hover:bg-[#c96a2e] disabled:bg-muted disabled:cursor-not-allowed flex items-center justify-center transition-colors"
               >
-                Verstuur
-              </Button>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  className="text-white"
+                >
+                  <path
+                    d="M8 14V2M8 2L3 7M8 2L13 7"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
             </div>
           </div>
 
