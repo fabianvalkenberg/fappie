@@ -12,11 +12,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { transcript, notes, mode } = await request.json();
+  const { messages, mode } = await request.json();
 
-  if (!transcript) {
+  if (!messages || messages.length === 0) {
     return NextResponse.json(
-      { error: "Transcript is verplicht" },
+      { error: "Berichten zijn verplicht" },
       { status: 400 }
     );
   }
@@ -24,21 +24,11 @@ export async function POST(request: NextRequest) {
   const systemPrompt =
     mode === "calendar" ? CALENDAR_SYSTEM_PROMPT : EMAIL_SYSTEM_PROMPT;
 
-  let userMessage = `Transcript:\n${transcript}`;
-  if (notes) {
-    userMessage += `\n\nExtra opmerkingen:\n${notes}`;
-  }
-
   const message = await anthropic.messages.create({
     model: "claude-haiku-4-5-20251001",
     max_tokens: 2048,
     system: systemPrompt,
-    messages: [
-      {
-        role: "user",
-        content: userMessage,
-      },
-    ],
+    messages,
   });
 
   const result =
