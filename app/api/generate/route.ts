@@ -31,8 +31,29 @@ export async function POST(request: NextRequest) {
     messages,
   });
 
-  const result =
+  const rawResult =
     message.content[0].type === "text" ? message.content[0].text : "";
 
-  return NextResponse.json({ result });
+  // Try to parse structured JSON response
+  try {
+    // Strip markdown code fences if present
+    let jsonStr = rawResult.trim();
+    if (jsonStr.startsWith("```")) {
+      jsonStr = jsonStr.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+    }
+
+    const parsed = JSON.parse(jsonStr);
+    return NextResponse.json({
+      title: parsed.title || "",
+      body: parsed.body || "",
+      chat: parsed.chat || "",
+    });
+  } catch {
+    // Fallback: treat entire response as body
+    return NextResponse.json({
+      title: "",
+      body: rawResult,
+      chat: "",
+    });
+  }
 }

@@ -13,56 +13,84 @@ interface ChatMessage {
   content: string;
 }
 
+interface OutputData {
+  title: string;
+  body: string;
+}
+
 export default function AppPage() {
   const [mode, setMode] = useState<Mode>("email");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [apiMessages, setApiMessages] = useState<
+    { role: "user" | "assistant"; content: string }[]
+  >([]);
+  const [output, setOutput] = useState<OutputData | null>(null);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copiedTitle, setCopiedTitle] = useState(false);
+  const [copiedBody, setCopiedBody] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // The latest assistant message is the "result" shown on the right
-  const latestAssistantMessage = [...messages]
-    .reverse()
-    .find((m) => m.role === "assistant");
-
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [chatMessages]);
 
   const handleSend = async () => {
     const trimmed = input.trim();
     if (!trimmed || loading) return;
 
-    const newUserMessage: ChatMessage = { role: "user", content: trimmed };
-    const updatedMessages = [...messages, newUserMessage];
-    setMessages(updatedMessages);
+    const newChatMessages: ChatMessage[] = [
+      ...chatMessages,
+      { role: "user", content: trimmed },
+    ];
+    const newApiMessages = [
+      ...apiMessages,
+      { role: "user" as const, content: trimmed },
+    ];
+
+    setChatMessages(newChatMessages);
+    setApiMessages(newApiMessages);
     setInput("");
     setLoading(true);
-    setCopied(false);
+    setCopiedTitle(false);
+    setCopiedBody(false);
 
     const res = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messages: updatedMessages.map((m) => ({
-          role: m.role,
-          content: m.content,
-        })),
-        mode,
-      }),
+      body: JSON.stringify({ messages: newApiMessages, mode }),
     });
 
     if (res.ok) {
       const data = await res.json();
-      setMessages([
-        ...updatedMessages,
-        { role: "assistant", content: data.result },
+
+      // Store the full JSON response as the assistant message for API context
+      const fullResponse = JSON.stringify({
+        title: data.title,
+        body: data.body,
+        chat: data.chat,
+      });
+      setApiMessages([
+        ...newApiMessages,
+        { role: "assistant", content: fullResponse },
       ]);
+
+      // Show chat message in the conversation
+      if (data.chat) {
+        setChatMessages([
+          ...newChatMessages,
+          { role: "assistant", content: data.chat },
+        ]);
+      }
+
+      // Update the output panel
+      if (data.title || data.body) {
+        setOutput({ title: data.title, body: data.body });
+      }
     } else {
-      setMessages([
-        ...updatedMessages,
+      setChatMessages([
+        ...newChatMessages,
         {
           role: "assistant",
           content: "Er is een fout opgetreden. Probeer opnieuw.",
@@ -80,9 +108,12 @@ export default function AppPage() {
   };
 
   const handleNewChat = () => {
-    setMessages([]);
+    setChatMessages([]);
+    setApiMessages([]);
+    setOutput(null);
     setInput("");
-    setCopied(false);
+    setCopiedTitle(false);
+    setCopiedBody(false);
   };
 
   const markdownToOutlookHtml = useCallback((md: string): string => {
@@ -117,25 +148,37 @@ export default function AppPage() {
     return htmlLines.join("");
   }, []);
 
-  const handleCopyOutput = async () => {
-    if (!latestAssistantMessage) return;
+  const handleCopyTitle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!output?.title) return;
 
-    const result = latestAssistantMessage.content;
-    const htmlContent = markdownToOutlookHtml(result);
+    try {
+      await navigator.clipboard.writeText(output.title);
+      setCopiedTitle(true);
+      setTimeout(() => setCopiedTitle(false), 2000);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleCopyBody = async () => {
+    if (!output?.body) return;
+
+    const htmlContent = markdownToOutlookHtml(output.body);
 
     try {
       await navigator.clipboard.write([
         new ClipboardItem({
           "text/html": new Blob([htmlContent], { type: "text/html" }),
-          "text/plain": new Blob([result], { type: "text/plain" }),
+          "text/plain": new Blob([output.body], { type: "text/plain" }),
         }),
       ]);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setCopiedBody(true);
+      setTimeout(() => setCopiedBody(false), 2000);
     } catch {
-      await navigator.clipboard.writeText(result);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(output.body);
+      setCopiedBody(true);
+      setTimeout(() => setCopiedBody(false), 2000);
     }
   };
 
@@ -146,7 +189,7 @@ export default function AppPage() {
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-center relative">
           <div className="absolute left-4 flex items-center gap-2">
             <Image src="/logo.svg" alt="Fappie" width={80} height={27} />
-            {messages.length > 0 && (
+            {chatMessages.length > 0 && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -195,12 +238,12 @@ export default function AppPage() {
           <div className="flex flex-col h-full min-h-0">
             {/* Messages */}
             <div className="flex-1 min-h-0 overflow-y-auto rounded-2xl p-4 mb-3 space-y-3">
-              {messages.length === 0 && (
+              {chatMessages.length === 0 && (
                 <p className="text-muted-foreground text-sm text-center mt-8">
                   Plak een transcript om te beginnen...
                 </p>
               )}
-              {messages.map((msg, i) => (
+              {chatMessages.map((msg, i) => (
                 <div
                   key={i}
                   className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
@@ -231,7 +274,7 @@ export default function AppPage() {
               <Textarea
                 ref={textareaRef}
                 placeholder={
-                  messages.length === 0
+                  chatMessages.length === 0
                     ? "Plak hier je transcript..."
                     : "Typ een opmerking of antwoord..."
                 }
@@ -251,35 +294,59 @@ export default function AppPage() {
             </div>
           </div>
 
-          {/* Right: Output — white paper sheet */}
-          <div className="flex flex-col h-full min-h-0">
-            {latestAssistantMessage && (
-              <div className="flex justify-end mb-2 shrink-0">
-                <span className="text-sm text-muted-foreground">
-                  {copied ? "\u2705 Gekopieerd!" : "Klik om te kopi\u00ebren"}
-                </span>
+          {/* Right: Output */}
+          <div className="flex flex-col h-full min-h-0 gap-3">
+            {/* Title bar */}
+            {output?.title && (
+              <div
+                className={`shrink-0 bg-white rounded-2xl shadow-sm px-6 py-4 cursor-pointer transition-all hover:shadow-md ${
+                  copiedTitle ? "ring-2 ring-green-500" : ""
+                }`}
+                onClick={handleCopyTitle}
+              >
+                <div className="flex items-center justify-between">
+                  <h2
+                    className="font-semibold text-foreground"
+                    style={{
+                      fontFamily: "Aptos, Calibri, sans-serif",
+                      fontSize: "12pt",
+                    }}
+                  >
+                    {output.title}
+                  </h2>
+                  <span className="text-xs text-muted-foreground ml-3 shrink-0">
+                    {copiedTitle ? "\u2705" : "kopieer titel"}
+                  </span>
+                </div>
               </div>
             )}
+
+            {/* Body */}
             <div
               className={`flex-1 min-h-0 overflow-y-auto cursor-pointer transition-all bg-white rounded-2xl shadow-sm p-8 ${
-                latestAssistantMessage ? "hover:shadow-md" : ""
-              } ${copied ? "ring-2 ring-green-500" : ""}`}
-              onClick={handleCopyOutput}
+                output?.body ? "hover:shadow-md" : ""
+              } ${copiedBody ? "ring-2 ring-green-500" : ""}`}
+              onClick={handleCopyBody}
             >
-              {latestAssistantMessage && (
-                <div
-                  className="prose prose-sm max-w-none"
-                  style={{
-                    fontFamily: "Aptos, Calibri, sans-serif",
-                    fontSize: "12pt",
-                    lineHeight: "1.5",
-                  }}
-                >
-                  <ReactMarkdown>
-                    {latestAssistantMessage.content}
-                  </ReactMarkdown>
+              {output?.body ? (
+                <div className="relative">
+                  <span className="absolute top-0 right-0 text-xs text-muted-foreground">
+                    {copiedBody
+                      ? "\u2705 Gekopieerd!"
+                      : "Klik om te kopi\u00ebren"}
+                  </span>
+                  <div
+                    className="prose prose-sm max-w-none"
+                    style={{
+                      fontFamily: "Aptos, Calibri, sans-serif",
+                      fontSize: "12pt",
+                      lineHeight: "1.5",
+                    }}
+                  >
+                    <ReactMarkdown>{output.body}</ReactMarkdown>
+                  </div>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
