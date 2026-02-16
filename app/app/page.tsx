@@ -2,10 +2,9 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
 
 type Mode = "email" | "calendar";
 
@@ -99,17 +98,14 @@ export default function AppPage() {
         continue;
       }
 
-      // Convert markdown bold **text** to <b>text</b>
       let processed = line.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
 
-      // Bullet points
       if (processed.match(/^[-*]\s/)) {
         processed = processed.replace(/^[-*]\s/, "");
         htmlLines.push(
           `<p style="${fontStyle}; padding-left: 20px;">\u2022 ${processed}</p>`
         );
       } else if (processed.match(/^\d+\.\s/)) {
-        // Numbered list
         htmlLines.push(
           `<p style="${fontStyle}; padding-left: 20px;">${processed}</p>`
         );
@@ -145,26 +141,29 @@ export default function AppPage() {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      {/* Header with mode switch */}
+      {/* Header with logo and mode switch */}
       <div className="shrink-0">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-center relative">
-          {messages.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleNewChat}
-              className="absolute left-4"
-            >
-              Nieuw gesprek
-            </Button>
-          )}
-          <div className="flex bg-white/60 rounded-lg p-1">
+          <div className="absolute left-4 flex items-center gap-2">
+            <Image src="/logo.svg" alt="Fappie" width={80} height={27} />
+            {messages.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleNewChat}
+                className="ml-2"
+              >
+                Nieuw gesprek
+              </Button>
+            )}
+          </div>
+          <div className="flex bg-white/60 rounded-full p-1">
             <button
               onClick={() => {
                 setMode("email");
                 handleNewChat();
               }}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 mode === "email"
                   ? "bg-white text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -177,7 +176,7 @@ export default function AppPage() {
                 setMode("calendar");
                 handleNewChat();
               }}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 mode === "calendar"
                   ? "bg-white text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -194,10 +193,8 @@ export default function AppPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
           {/* Left: Chat */}
           <div className="flex flex-col h-full min-h-0">
-            <Label className="mb-2 shrink-0">Chat</Label>
-
             {/* Messages */}
-            <div className="flex-1 min-h-0 overflow-y-auto border rounded-lg p-4 mb-3 space-y-3">
+            <div className="flex-1 min-h-0 overflow-y-auto rounded-2xl p-4 mb-3 space-y-3">
               {messages.length === 0 && (
                 <p className="text-muted-foreground text-sm text-center mt-8">
                   Plak een transcript om te beginnen...
@@ -209,10 +206,10 @@ export default function AppPage() {
                   className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
+                    className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
                       msg.role === "user"
                         ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-foreground"
+                        : "bg-white text-foreground"
                     }`}
                   >
                     <div className="whitespace-pre-wrap">{msg.content}</div>
@@ -221,7 +218,7 @@ export default function AppPage() {
               ))}
               {loading && (
                 <div className="flex justify-start">
-                  <div className="bg-muted rounded-lg px-3 py-2 text-sm text-muted-foreground">
+                  <div className="bg-white rounded-2xl px-3 py-2 text-sm text-muted-foreground">
                     Genereren...
                   </div>
                 </div>
@@ -241,13 +238,13 @@ export default function AppPage() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="min-h-[80px] max-h-[200px] resize-none"
+                className="min-h-[80px] max-h-[200px] resize-none rounded-2xl"
                 rows={3}
               />
               <Button
                 onClick={handleSend}
                 disabled={loading || !input.trim()}
-                className="shrink-0 self-end"
+                className="shrink-0 self-end rounded-2xl"
               >
                 Verstuur
               </Button>
@@ -264,12 +261,12 @@ export default function AppPage() {
               </div>
             )}
             <div
-              className={`flex-1 min-h-0 overflow-y-auto cursor-pointer transition-all bg-white rounded-lg shadow-sm p-8 ${
+              className={`flex-1 min-h-0 overflow-y-auto cursor-pointer transition-all bg-white rounded-2xl shadow-sm p-8 ${
                 latestAssistantMessage ? "hover:shadow-md" : ""
               } ${copied ? "ring-2 ring-green-500" : ""}`}
               onClick={handleCopyOutput}
             >
-              {latestAssistantMessage ? (
+              {latestAssistantMessage && (
                 <div
                   className="prose prose-sm max-w-none"
                   style={{
@@ -281,12 +278,6 @@ export default function AppPage() {
                   <ReactMarkdown>
                     {latestAssistantMessage.content}
                   </ReactMarkdown>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-full min-h-[400px]">
-                  <p className="text-muted-foreground text-sm">
-                    Het resultaat verschijnt hier...
-                  </p>
                 </div>
               )}
             </div>
