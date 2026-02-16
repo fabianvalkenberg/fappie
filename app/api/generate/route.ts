@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     mode === "calendar" ? CALENDAR_SYSTEM_PROMPT : EMAIL_SYSTEM_PROMPT;
 
   const message = await anthropic.messages.create({
-    model: "claude-haiku-4-5-20251001",
+    model: "claude-sonnet-4-20250514",
     max_tokens: 2048,
     system: systemPrompt,
     messages,
