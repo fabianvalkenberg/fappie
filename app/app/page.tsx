@@ -146,43 +146,45 @@ export default function AppPage() {
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* Header with mode switch */}
-      <div className="border-b shrink-0">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-xl font-semibold">Fappie</h1>
-          <div className="flex items-center gap-3">
-            {messages.length > 0 && (
-              <Button variant="ghost" size="sm" onClick={handleNewChat}>
-                Nieuw gesprek
-              </Button>
-            )}
-            <div className="flex bg-muted rounded-lg p-1">
-              <button
-                onClick={() => {
-                  setMode("email");
-                  handleNewChat();
-                }}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  mode === "email"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                E-mail
-              </button>
-              <button
-                onClick={() => {
-                  setMode("calendar");
-                  handleNewChat();
-                }}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  mode === "calendar"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Agenda
-              </button>
-            </div>
+      <div className="shrink-0">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-center relative">
+          {messages.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleNewChat}
+              className="absolute left-4"
+            >
+              Nieuw gesprek
+            </Button>
+          )}
+          <div className="flex bg-white/60 rounded-lg p-1">
+            <button
+              onClick={() => {
+                setMode("email");
+                handleNewChat();
+              }}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                mode === "email"
+                  ? "bg-white text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              E-mail
+            </button>
+            <button
+              onClick={() => {
+                setMode("calendar");
+                handleNewChat();
+              }}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                mode === "calendar"
+                  ? "bg-white text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Agenda
+            </button>
           </div>
         </div>
       </div>
@@ -252,47 +254,42 @@ export default function AppPage() {
             </div>
           </div>
 
-          {/* Right: Output */}
+          {/* Right: Output — white paper sheet */}
           <div className="flex flex-col h-full min-h-0">
-            <div className="flex items-center justify-between mb-2 shrink-0">
-              <Label>Resultaat</Label>
-              {latestAssistantMessage && (
+            {latestAssistantMessage && (
+              <div className="flex justify-end mb-2 shrink-0">
                 <span className="text-sm text-muted-foreground">
                   {copied ? "\u2705 Gekopieerd!" : "Klik om te kopi\u00ebren"}
                 </span>
-              )}
-            </div>
-            <Card
-              className={`flex-1 min-h-0 overflow-y-auto cursor-pointer transition-colors ${
-                latestAssistantMessage
-                  ? "hover:border-primary/50"
-                  : "border-dashed"
-              } ${copied ? "border-green-500" : ""}`}
+              </div>
+            )}
+            <div
+              className={`flex-1 min-h-0 overflow-y-auto cursor-pointer transition-all bg-white rounded-lg shadow-sm p-8 ${
+                latestAssistantMessage ? "hover:shadow-md" : ""
+              } ${copied ? "ring-2 ring-green-500" : ""}`}
               onClick={handleCopyOutput}
             >
-              <CardContent className="p-4">
-                {latestAssistantMessage ? (
-                  <div
-                    className="prose prose-sm max-w-none"
-                    style={{
-                      fontFamily: "Aptos, Calibri, sans-serif",
-                      fontSize: "12pt",
-                      lineHeight: "1.5",
-                    }}
-                  >
-                    <ReactMarkdown>
-                      {latestAssistantMessage.content}
-                    </ReactMarkdown>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center h-full min-h-[400px]">
-                    <p className="text-muted-foreground text-sm">
-                      Het resultaat verschijnt hier...
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+              {latestAssistantMessage ? (
+                <div
+                  className="prose prose-sm max-w-none"
+                  style={{
+                    fontFamily: "Aptos, Calibri, sans-serif",
+                    fontSize: "12pt",
+                    lineHeight: "1.5",
+                  }}
+                >
+                  <ReactMarkdown>
+                    {latestAssistantMessage.content}
+                  </ReactMarkdown>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-full min-h-[400px]">
+                  <p className="text-muted-foreground text-sm">
+                    Het resultaat verschijnt hier...
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
