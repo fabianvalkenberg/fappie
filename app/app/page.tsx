@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
+import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -38,18 +39,42 @@ export default function AppPage() {
     setLoading(false);
   };
 
+  const markdownToOutlookHtml = useCallback((md: string): string => {
+    const fontStyle = 'font-family: Aptos, Calibri, sans-serif; font-size: 12pt; margin: 0; padding: 0;';
+
+    const lines = md.split("\n");
+    const htmlLines: string[] = [];
+
+    for (const line of lines) {
+      if (line.trim() === "") {
+        htmlLines.push(`<p style="${fontStyle}">&nbsp;</p>`);
+        continue;
+      }
+
+      // Convert markdown bold **text** to <b>text</b>
+      let processed = line.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
+
+      // Bullet points
+      if (processed.match(/^[-*]\s/)) {
+        processed = processed.replace(/^[-*]\s/, "");
+        htmlLines.push(
+          `<p style="${fontStyle}; padding-left: 20px;">• ${processed}</p>`
+        );
+      } else if (processed.match(/^\d+\.\s/)) {
+        // Numbered list
+        htmlLines.push(`<p style="${fontStyle}; padding-left: 20px;">${processed}</p>`);
+      } else {
+        htmlLines.push(`<p style="${fontStyle}">${processed}</p>`);
+      }
+    }
+
+    return htmlLines.join("");
+  }, []);
+
   const handleCopyOutput = async () => {
     if (!result) return;
 
-    // Convert plain text to HTML with Aptos 12px for Outlook compatibility
-    const htmlContent = result
-      .split("\n")
-      .map((line) =>
-        line.trim() === ""
-          ? '<p style="font-family: Aptos, Calibri, sans-serif; font-size: 12pt; margin: 0;">&nbsp;</p>'
-          : `<p style="font-family: Aptos, Calibri, sans-serif; font-size: 12pt; margin: 0;">${line}</p>`
-      )
-      .join("");
+    const htmlContent = markdownToOutlookHtml(result);
 
     try {
       await navigator.clipboard.write([
@@ -150,7 +175,7 @@ export default function AppPage() {
               <Label>Resultaat</Label>
               {result && (
                 <span className="text-sm text-muted-foreground">
-                  {copied ? "Gekopieerd!" : "Klik om te kopiëren"}
+                  {copied ? "✅ Gekopieerd!" : "Klik om te kopiëren"}
                 </span>
               )}
             </div>
@@ -170,14 +195,14 @@ export default function AppPage() {
                 ) : result ? (
                   <div
                     ref={outputRef}
-                    className="whitespace-pre-wrap"
+                    className="prose prose-sm max-w-none"
                     style={{
                       fontFamily: "Aptos, Calibri, sans-serif",
                       fontSize: "12pt",
                       lineHeight: "1.5",
                     }}
                   >
-                    {result}
+                    <ReactMarkdown>{result}</ReactMarkdown>
                   </div>
                 ) : (
                   <div className="flex items-center justify-center h-full min-h-[400px]">
